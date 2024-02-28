@@ -35,54 +35,65 @@ export const exportToExcalidrawPlus = async (
 
   const id = `${nanoid(12)}`;
 
-  const encryptionKey = (await generateEncryptionKey())!;
-  const encryptedData = await encryptData(
-    encryptionKey,
-    serializeAsJSON(elements, appState, files, "database"),
-  );
+  console.log(id, serializeAsJSON(elements, appState, files, "database"));
 
-  const blob = new Blob(
-    [encryptedData.iv, new Uint8Array(encryptedData.encryptedBuffer)],
-    {
-      type: MIME_TYPES.binary,
-    },
-  );
+  const response = await fetch(`http://${import.meta.env.REACT_APP_ADDRESS}/excalidraw/workspaces/${id}`,{
+    method: "POST",
+    mode: "cors",
+    headers: {'Content-Type': "application/json"},
+    body: serializeAsJSON(elements, appState, files, "database"),
+  });
+  const resultJson = await response.json();
+  console.log('response', response, resultJson);
 
-  await firebase
-    .storage()
-    .ref(`/migrations/scenes/${id}`)
-    .put(blob, {
-      customMetadata: {
-        data: JSON.stringify({ version: 2, name: appState.name }),
-        created: Date.now().toString(),
-      },
-    });
+  // const encryptionKey = (await generateEncryptionKey())!;
+  // const encryptedData = await encryptData(
+  //   encryptionKey,
+  //   serializeAsJSON(elements, appState, files, "database"),
+  // );
 
-  const filesMap = new Map<FileId, BinaryFileData>();
-  for (const element of elements) {
-    if (isInitializedImageElement(element) && files[element.fileId]) {
-      filesMap.set(element.fileId, files[element.fileId]);
-    }
-  }
+  // const blob = new Blob(
+  //   [encryptedData.iv, new Uint8Array(encryptedData.encryptedBuffer)],
+  //   {
+  //     type: MIME_TYPES.binary,
+  //   },
+  // );
 
-  if (filesMap.size) {
-    const filesToUpload = await encodeFilesForUpload({
-      files: filesMap,
-      encryptionKey,
-      maxBytes: FILE_UPLOAD_MAX_BYTES,
-    });
+  // await firebase
+  //   .storage()
+  //   .ref(`/migrations/scenes/${id}`)
+  //   .put(blob, {
+  //     customMetadata: {
+  //       data: JSON.stringify({ version: 2, name: appState.name }),
+  //       created: Date.now().toString(),
+  //     },
+  //   });
 
-    await saveFilesToFirebase({
-      prefix: `/migrations/files/scenes/${id}`,
-      files: filesToUpload,
-    });
-  }
+  // const filesMap = new Map<FileId, BinaryFileData>();
+  // for (const element of elements) {
+  //   if (isInitializedImageElement(element) && files[element.fileId]) {
+  //     filesMap.set(element.fileId, files[element.fileId]);
+  //   }
+  // }
 
-  window.open(
-    `${
-      import.meta.env.VITE_APP_PLUS_APP
-    }/import?excalidraw=${id},${encryptionKey}`,
-  );
+  // if (filesMap.size) {
+  //   const filesToUpload = await encodeFilesForUpload({
+  //     files: filesMap,
+  //     encryptionKey,
+  //     maxBytes: FILE_UPLOAD_MAX_BYTES,
+  //   });
+
+  //   await saveFilesToFirebase({
+  //     prefix: `/migrations/files/scenes/${id}`,
+  //     files: filesToUpload,
+  //   });
+  // }
+
+  // window.open(
+  //   `${
+  //     import.meta.env.VITE_APP_PLUS_APP
+  //   }/import?excalidraw=${id},${encryptionKey}`,
+  // );
 };
 
 export const ExportToExcalidrawPlus: React.FC<{

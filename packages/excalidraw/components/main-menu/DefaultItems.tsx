@@ -1,6 +1,7 @@
 import { getShortcutFromShortcutName } from "../../actions/shortcuts";
 import { useI18n } from "../../i18n";
 import {
+  useExcalidrawAppState,
   useExcalidrawSetAppState,
   useExcalidrawActionManager,
   useExcalidrawElements,
@@ -36,17 +37,78 @@ import { jotaiScope } from "../../jotai";
 import { useUIAppState } from "../../context/ui-appState";
 import { openConfirmModal } from "../OverwriteConfirm/OverwriteConfirmState";
 import Trans from "../Trans";
+import { useEffect, useState } from "react";
+import {
+  loadFromBlob,
+} from "../../data/blob";
+import { ActionResult } from "../../actions/types";
+
 
 export const LoadScene = () => {
+
+  const [workspaces, setWorkspaces] = useState([]);
+
+  function makeWorkspaceList(arr: Array<string>) {
+    let workspacesList = [];
+    for (let a of arr) {
+      workspacesList.push(
+        <button onClick={() => {loadWorkspace(a)}}>{a}</button>
+      )
+    }
+    return workspacesList;
+  }
+
+  async function loadWorkspace(workspaceId: string) {
+    try {
+      const response = await fetch(`http://${import.meta.env.REACT_APP_ADDRESS}/excalidraw/workspaces/${workspaceId}`);
+      if (response) {
+        const blob = await response.blob();
+        const workspaceFromBlob = loadFromBlob(blob,
+          currentAppState,
+          elements
+          );
+        const els = (await workspaceFromBlob).elements;
+        const stateToRestore = (await workspaceFromBlob).appState;
+
+        const workspaceState:ActionResult = {
+          elements: els,
+          appState: stateToRestore,
+          commitToHistory: false, 
+        }
+        actionManager.updater(workspaceState);
+      
+        
+      }
+    } catch (error: any) {
+      console.log(error.message);
+    }
+  };
+
+  const getWorkspaces = async () => {
+    const response = await fetch('http://${import.meta.env.REACT_APP_ADDRESS}/excalidraw/workspaces',{
+    method: "GET",
+    mode: "cors",
+    headers: {'Content-Type': "application/json"},
+    });
+
+    const resultJson = await response.json();
+
+    setWorkspaces(resultJson.response.map((a: { workspace_id: string; }) => a.workspace_id));
+};
+
+  useEffect(() => {getWorkspaces();}, [])
+
   const { t } = useI18n();
   const actionManager = useExcalidrawActionManager();
   const elements = useExcalidrawElements();
+  const currentAppState = useExcalidrawAppState();
 
   if (!actionManager.isActionEnabled(actionLoadScene)) {
     return null;
   }
 
   const handleSelect = async () => {
+    let workspaceButtons = makeWorkspaceList(workspaces);
     if (
       !elements.length ||
       (await openConfirmModal({
@@ -54,11 +116,9 @@ export const LoadScene = () => {
         actionLabel: t("overwriteConfirm.modal.loadFromFile.button"),
         color: "warning",
         description: (
-          <Trans
-            i18nKey="overwriteConfirm.modal.loadFromFile.description"
-            bold={(text) => <strong>{text}</strong>}
-            br={() => <br />}
-          />
+          <div>
+            {workspaceButtons}
+            </div>
         ),
       }))
     ) {

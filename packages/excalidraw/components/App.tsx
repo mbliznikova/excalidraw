@@ -3596,14 +3596,15 @@ class App extends React.Component<AppProps, AppState> {
 
   restoreFileFromShare = async () => {
     try {
-      const webShareTargetCache = await caches.open("web-share-target");
+      const searchParams = new URLSearchParams(window.location.search.slice(1));
+      const workplaceId = searchParams.get("web-share-target");
 
-      const response = await webShareTargetCache.match("shared-file");
+      const response = await fetch(`http://${import.meta.env.REACT_APP_ADDRESS}/excalidraw/workspaces/${workplaceId}`);
       if (response) {
         const blob = await response.blob();
         const file = new File([blob], blob.name || "", { type: blob.type });
         this.loadFileToCanvas(file, null);
-        await webShareTargetCache.delete("shared-file");
+
         window.history.replaceState(null, APP_NAME, window.location.pathname);
       }
     } catch (error: any) {
