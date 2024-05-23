@@ -1,0 +1,12 @@
+version: "3"
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+  backend:
+    build: ./backend
+    environment:
+      - DJANGO_ALLOWED_HOSTS=backend
