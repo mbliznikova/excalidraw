@@ -1,0 +1,11 @@
+{% if response %}
+    <ul> 
+        {% for r in response %}
+            <li>
+                <a href="http://[::1]:3000/?web-share-target={{ r.workspace_id }}" target="_blank">{{ r.workspace_id }} - {{ r.save_date }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No saved workspaces</p>
+{% endif %}
